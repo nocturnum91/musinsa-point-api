@@ -1,7 +1,9 @@
 package com.musinsa.point.application.point;
 
 import com.musinsa.point.api.point.dto.request.PointSaveRequest;
+import com.musinsa.point.api.point.dto.request.PointUseRequest;
 import com.musinsa.point.api.point.dto.response.PointSaveResponse;
+import com.musinsa.point.api.point.dto.response.PointUseResponse;
 import com.musinsa.point.domain.member.entity.Member;
 import com.musinsa.point.domain.member.repository.MemberRepository;
 import com.musinsa.point.domain.point.entity.*;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -30,6 +34,9 @@ public class PointService {
     private final MemberPointLimitRepository memberPointLimitRepository;
     private final PointSaveRepository pointSaveRepository;
     private final PointHistoryRepository pointHistoryRepository;
+
+    private final PointUseRepository pointUseRepository;
+    private final PointUseDetailRepository pointUseDetailRepository;
 
     public PointSaveResponse savePoint(PointSaveRequest request) {
 
@@ -113,6 +120,90 @@ public class PointService {
         // 11. 응답
         return PointSaveResponse.of(save, history);
     }
+
+    @Transactional
+    public PointUseResponse usePoint(PointUseRequest request) {
+
+        // 1. 회원 조회
+        Member member = memberRepository.findByMemberId(request.getMemberId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        long useAmount = request.getUseAmount();
+
+        // 2. 잔액 확인
+        long currentBalance = Optional.ofNullable(pointSaveRepository.sumAvailableAmountByMember(member))
+                .orElse(0L);
+
+        if (currentBalance < useAmount) {
+            throw new BusinessException(
+                    ErrorCode.POINT_BALANCE_LACK,
+                    "포인트 잔액이 부족합니다. 현재 사용 가능 잔액: " + currentBalance
+            );
+        }
+
+        // 3. 우선순위 저장 목록 조회 (manual → expire 임박 → 오래된 순)
+        List<PointSave> buckets = pointSaveRepository.findUsableBuckets(member);
+
+        long remaining = useAmount;
+
+        // 4. point_use 생성
+        PointUse pointUse = PointUse.createUse(member, request.getOrderNo(), useAmount);
+        pointUseRepository.save(pointUse);
+
+        List<PointUseDetail> details = new ArrayList<>();
+
+        // 5. 버킷 순회하며 차감
+        for (PointSave save : buckets) {
+            if (remaining == 0) break;
+
+            long canUse = save.getAvailableAmount();
+            long used = Math.min(canUse, remaining);
+
+            // 버킷 차감
+            save.use(used);
+
+            // detail 기록
+            PointUseDetail detail = PointUseDetail.create(pointUse, save, used);
+            pointUseDetailRepository.save(detail);
+            details.add(detail);
+
+            remaining -= used;
+        }
+
+        // sanity check
+        if (remaining > 0) {
+            throw new BusinessException(
+                    ErrorCode.POINT_BALANCE_LACK,
+                    "사용 가능한 포인트가 부족합니다."
+            );
+        }
+
+        // 6. history 기록
+        long nextBalance = currentBalance - useAmount;
+        LocalDateTime now = LocalDateTime.now();
+
+        PointHistory history = PointHistory.createUseHistory(
+                member,
+                pointUse,
+                -useAmount,            // 사용 → 음수
+                nextBalance,
+                now,
+                "주문번호 " + request.getOrderNo() + " 사용"
+        );
+
+        pointHistoryRepository.save(history);
+
+        // 7. 응답
+        return PointUseResponse.builder()
+                .useNo(pointUse.getUseNo())
+                .pointKey(history.getHistoryNo())
+                .usedAmount(useAmount)
+                .balanceAfter(nextBalance)
+                .orderNo(pointUse.getOrderNo())
+                .occurredAt(now)
+                .build();
+    }
+
 
     private long getLongPolicy(String policyCode) {
         return pointSystemPolicyRepository.findByPolicyCode(policyCode)

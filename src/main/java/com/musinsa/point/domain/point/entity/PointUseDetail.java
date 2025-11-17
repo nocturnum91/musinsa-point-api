@@ -28,6 +28,14 @@ public class PointUseDetail extends BaseDateTimeEntity {
     private Long usedAmount;
 
     @Column(name = "canceled_amount", nullable = false)
-    private Long canceledAmount;
+    private Long canceledAmount = 0L;
+
+    public static PointUseDetail create(PointUse use, PointSave save, long usedAmount) {
+        PointUseDetail detail = new PointUseDetail();
+        detail.pointUse = use;
+        detail.pointSave = save;
+        detail.usedAmount = usedAmount;
+        return detail;
+    }
 
 }

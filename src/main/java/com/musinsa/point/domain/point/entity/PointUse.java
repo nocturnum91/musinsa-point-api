@@ -32,4 +32,13 @@ public class PointUse extends BaseDateTimeEntity {
     @Column(name = "status", nullable = false, length = 20)
     private PointUseStatus status;
 
+    public static PointUse createUse(Member member, String orderNo, long amount) {
+        PointUse use = new PointUse();
+        use.member = member;
+        use.orderNo = orderNo;
+        use.usedAmount = amount;
+        use.status = PointUseStatus.USED;
+        return use;
+    }
+
 }

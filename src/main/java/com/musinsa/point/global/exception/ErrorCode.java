@@ -12,12 +12,17 @@ public enum ErrorCode {
     // 회원
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER_404", "회원 정보를 찾을 수 없습니다."),
 
-    // 포인트
+    // 포인트 정책/아이템/이벤트
     POINT_POLICY_NOT_FOUND(HttpStatus.NOT_FOUND, "POINT_POLICY_404", "포인트 정책 정보를 찾을 수 없습니다."),
     POINT_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "POINT_ITEM_404", "포인트 아이템 정보를 찾을 수 없습니다."),
     POINT_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "POINT_EVENT_404", "포인트 이벤트 정보를 찾을 수 없습니다."),
     POINT_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, "POINT_POLICY_400", "포인트 정책을 위반한 요청입니다."),
+
+    // 포인트 잔액/적립/사용
     POINT_BALANCE_EXCEEDED(HttpStatus.BAD_REQUEST, "POINT_BALANCE_400", "보유 가능 포인트 한도를 초과합니다."),
+
+    POINT_BALANCE_LACK(HttpStatus.BAD_REQUEST, "POINT_BALANCE_400_1", "포인트 잔액이 부족합니다."),
+
     POINT_SAVE_NOT_FOUND(HttpStatus.NOT_FOUND, "POINT_SAVE_404", "포인트 적립 정보를 찾을 수 없습니다."),
     POINT_USE_NOT_FOUND(HttpStatus.NOT_FOUND, "POINT_USE_404", "포인트 사용 정보를 찾을 수 없습니다."),
     POINT_USE_CANCEL_INVALID(HttpStatus.BAD_REQUEST, "POINT_USE_CANCEL_400", "사용 취소가 불가능한 상태입니다.");
@@ -32,3 +37,4 @@ public enum ErrorCode {
         this.message = message;
     }
 }
+
