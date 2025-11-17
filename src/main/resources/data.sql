@@ -16,7 +16,7 @@ INSERT INTO point_system_policy (policy_code, policy_value, description)
 VALUES ('MAX_FREE_POINT_BALANCE', '15000', '최대 보유 가능 무료 포인트');
 
 INSERT INTO point_system_policy (policy_code, policy_value, description)
-VALUES ('MAX_SAVE_PER_REQUEST', '3000', '1회 요청당 최대 적립 포인트');
+VALUES ('MAX_SAVE_PER_REQUEST', '10000', '1회 요청당 최대 적립 포인트');
 
 
 ------------------------------------------------------------
