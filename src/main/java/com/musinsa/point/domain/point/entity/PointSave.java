@@ -87,6 +87,10 @@ public class PointSave extends BaseDateTimeEntity {
                 .build();
     }
 
+    public void cancelSave() {
+        this.availableAmount = 0L;
+    }
+
     /**
      * 포인트 사용 시 차감
      */

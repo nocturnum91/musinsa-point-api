@@ -106,6 +106,25 @@ public class PointHistory {
                 .build();
     }
 
+    public static PointHistory createSaveCancelHistory(Member member,
+                                                       PointSave save,
+                                                       long amount,
+                                                       long balanceAfter,
+                                                       LocalDateTime occurredAt,
+                                                       String description) {
+        return PointHistory.builder()
+                .member(member)
+                .historyType(HistoryType.SAVE_CANCEL)
+                .refSave(save)
+                .refUse(null)
+                .amount(amount)
+                .balanceAfter(balanceAfter)
+                .description(description)
+                .occurredAt(occurredAt)
+                .build();
+    }
+
+
     public static PointHistory createUseHistory(Member member,
                                                 PointUse use,
                                                 long amount,

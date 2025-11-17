@@ -1,9 +1,11 @@
 package com.musinsa.point.api.point.controller;
 
 import com.musinsa.point.api.point.dto.request.PointHistoryRequest;
+import com.musinsa.point.api.point.dto.request.PointSaveCancelRequest;
 import com.musinsa.point.api.point.dto.request.PointSaveRequest;
 import com.musinsa.point.api.point.dto.request.PointUseRequest;
 import com.musinsa.point.api.point.dto.response.PointHistoryResponse;
+import com.musinsa.point.api.point.dto.response.PointSaveCancelResponse;
 import com.musinsa.point.api.point.dto.response.PointSaveResponse;
 import com.musinsa.point.api.point.dto.response.PointUseResponse;
 import com.musinsa.point.application.point.PointQueryService;
@@ -39,6 +41,11 @@ public class PointController {
     @PostMapping("/save")
     public PointSaveResponse savePoint(@RequestBody @Valid PointSaveRequest request) {
         return pointService.savePoint(request);
+    }
+
+    @PostMapping("/save-cancel")
+    public PointSaveCancelResponse cancelSave(@RequestBody @Valid PointSaveCancelRequest request) {
+        return pointService.cancelSave(request);
     }
 
     @PostMapping("/use")

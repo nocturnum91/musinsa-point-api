@@ -1,7 +1,9 @@
 package com.musinsa.point.application.point;
 
+import com.musinsa.point.api.point.dto.request.PointSaveCancelRequest;
 import com.musinsa.point.api.point.dto.request.PointSaveRequest;
 import com.musinsa.point.api.point.dto.request.PointUseRequest;
+import com.musinsa.point.api.point.dto.response.PointSaveCancelResponse;
 import com.musinsa.point.api.point.dto.response.PointSaveResponse;
 import com.musinsa.point.api.point.dto.response.PointUseResponse;
 import com.musinsa.point.domain.member.entity.Member;
@@ -120,6 +122,59 @@ public class PointService {
         // 11. 응답
         return PointSaveResponse.of(save, history);
     }
+
+    @Transactional
+    public PointSaveCancelResponse cancelSave(PointSaveCancelRequest request) {
+
+        // 1. 회원 조회
+        Member member = memberRepository.findByMemberId(request.getMemberId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        // 2. save 조회
+        PointSave save = pointSaveRepository.findById(request.getSaveNo())
+                .orElseThrow(() -> new BusinessException(ErrorCode.POINT_SAVE_NOT_FOUND));
+
+        if (!save.getMember().equals(member)) {
+            throw new BusinessException(ErrorCode.POINT_SAVE_NOT_FOUND, "해당 회원의 적립 건이 아닙니다.");
+        }
+
+        // 3. 이미 일부라도 사용되었는지 확인
+        Long usedAmount = pointUseDetailRepository.getUsedAmount(save.getSaveNo());
+        if (usedAmount > 0) {
+            throw new BusinessException(ErrorCode.POINT_USE_CANCEL_INVALID,
+                    "이미 사용된 적립금은 취소할 수 없습니다.");
+        }
+
+        long amount = save.getAmount();
+
+        // 4. 포인트 감소 (available_amount → 0)
+        long currentBalance = pointSaveRepository.sumAvailableAmountByMember(member);
+        long nextBalance = currentBalance - amount;
+
+        save.cancelSave(); // available_amount = 0 으로 만드는 도메인 메서드
+
+        // 5. history 저장
+        LocalDateTime now = LocalDateTime.now();
+        PointHistory history = PointHistory.createSaveCancelHistory(
+                member,
+                save,
+                -amount,     // 취소 → 음수
+                nextBalance,
+                now,
+                "적립 취소: saveNo=" + save.getSaveNo()
+        );
+        pointHistoryRepository.save(history);
+
+        // 6. 응답
+        return PointSaveCancelResponse.builder()
+                .saveNo(save.getSaveNo())
+                .pointKey(history.getHistoryNo())
+                .canceledAmount(amount)
+                .balanceAfter(nextBalance)
+                .occurredAt(now)
+                .build();
+    }
+
 
     @Transactional
     public PointUseResponse usePoint(PointUseRequest request) {
