@@ -2,7 +2,6 @@ package com.musinsa.point.domain.point.entity;
 
 import com.musinsa.point.domain.member.entity.Member;
 import com.musinsa.point.domain.point.model.HistoryType;
-import com.musinsa.point.global.entity.BaseDateTimeEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @Entity
 @Table(name = "point_history")
-public class PointHistory extends BaseDateTimeEntity {
+public class PointHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
