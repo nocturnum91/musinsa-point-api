@@ -3,6 +3,8 @@ package com.musinsa.point.domain.point.entity;
 import com.musinsa.point.domain.member.entity.Member;
 import com.musinsa.point.domain.point.model.HistoryType;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -17,7 +19,7 @@ public class PointHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "history_no")
-    private Long historyNo;  // == pointKey 개념
+    private Long historyNo;  // == pointKey
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_no", nullable = false)
@@ -46,5 +48,45 @@ public class PointHistory {
 
     @Column(name = "occurred_at", nullable = false)
     private LocalDateTime occurredAt;
+
+    @Builder(access = AccessLevel.PRIVATE)
+    private PointHistory(Member member,
+                         HistoryType historyType,
+                         PointSave refSave,
+                         PointUse refUse,
+                         Long amount,
+                         Long balanceAfter,
+                         String description,
+                         LocalDateTime occurredAt) {
+        this.member = member;
+        this.historyType = historyType;
+        this.refSave = refSave;
+        this.refUse = refUse;
+        this.amount = amount;
+        this.balanceAfter = balanceAfter;
+        this.description = description;
+        this.occurredAt = occurredAt;
+    }
+
+    /**
+     * 적립(SAVE) 이력 생성
+     */
+    public static PointHistory createSaveHistory(Member member,
+                                                 PointSave save,
+                                                 long amount,
+                                                 long balanceAfter,
+                                                 LocalDateTime occurredAt,
+                                                 String description) {
+        return PointHistory.builder()
+                .member(member)
+                .historyType(HistoryType.SAVE)
+                .refSave(save)
+                .refUse(null)
+                .amount(amount)
+                .balanceAfter(balanceAfter)
+                .description(description)
+                .occurredAt(occurredAt)
+                .build();
+    }
 
 }
