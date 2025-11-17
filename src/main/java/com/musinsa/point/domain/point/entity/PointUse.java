@@ -41,4 +41,7 @@ public class PointUse extends BaseDateTimeEntity {
         return use;
     }
 
+    public void changeStatus(PointUseStatus newStatus) {
+        this.status = newStatus;
+    }
 }

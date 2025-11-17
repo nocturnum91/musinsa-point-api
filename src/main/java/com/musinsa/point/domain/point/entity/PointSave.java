@@ -122,4 +122,9 @@ public class PointSave extends BaseDateTimeEntity {
         return "Y".equalsIgnoreCase(this.isManualYn);
     }
 
+    public void increaseAvailableAmount(long amount) {
+        this.availableAmount += amount;
+    }
+
+
 }

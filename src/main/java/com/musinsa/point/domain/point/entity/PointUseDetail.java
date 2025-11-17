@@ -38,4 +38,8 @@ public class PointUseDetail extends BaseDateTimeEntity {
         return detail;
     }
 
+    public void addCanceledAmount(long amount) {
+        this.canceledAmount += amount;
+    }
+
 }

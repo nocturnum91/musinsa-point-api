@@ -1,13 +1,7 @@
 package com.musinsa.point.api.point.controller;
 
-import com.musinsa.point.api.point.dto.request.PointHistoryRequest;
-import com.musinsa.point.api.point.dto.request.PointSaveCancelRequest;
-import com.musinsa.point.api.point.dto.request.PointSaveRequest;
-import com.musinsa.point.api.point.dto.request.PointUseRequest;
-import com.musinsa.point.api.point.dto.response.PointHistoryResponse;
-import com.musinsa.point.api.point.dto.response.PointSaveCancelResponse;
-import com.musinsa.point.api.point.dto.response.PointSaveResponse;
-import com.musinsa.point.api.point.dto.response.PointUseResponse;
+import com.musinsa.point.api.point.dto.request.*;
+import com.musinsa.point.api.point.dto.response.*;
 import com.musinsa.point.application.point.PointQueryService;
 import com.musinsa.point.application.point.PointService;
 import jakarta.validation.Valid;
@@ -52,6 +46,12 @@ public class PointController {
     public PointUseResponse usePoint(@RequestBody @Valid PointUseRequest request) {
         return pointService.usePoint(request);
     }
+
+    @PostMapping("/use-cancel")
+    public PointUseCancelResponse cancelUse(@RequestBody @Valid PointUseCancelRequest request) {
+        return pointService.cancelUse(request);
+    }
+
 
 
 }

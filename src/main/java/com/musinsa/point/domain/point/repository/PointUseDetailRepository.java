@@ -19,4 +19,14 @@ public interface PointUseDetailRepository extends JpaRepository<PointUseDetail, 
             """)
     Long getUsedAmount(@Param("saveNo") Long saveNo);
 
+    @Query("""
+                SELECT COALESCE(SUM(d.usedAmount - d.canceledAmount), 0)
+                FROM PointUseDetail d
+                WHERE d.pointUse.useNo = :useNo
+            """)
+    Long getCancelableAmountByUse(@Param("useNo") Long useNo);
+
+    List<PointUseDetail> findByPointUseOrderByDetailNoAsc(PointUse use);
+
+
 }

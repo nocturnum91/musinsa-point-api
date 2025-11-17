@@ -143,5 +143,24 @@ public class PointHistory {
                 .build();
     }
 
+    public static PointHistory createUseCancelHistory(
+            Member member,
+            PointUse use,
+            long amount,
+            long balanceAfter,
+            LocalDateTime occurredAt,
+            String description) {
+
+        return PointHistory.builder()
+                .member(member)
+                .historyType(HistoryType.USE_CANCEL)
+                .refUse(use)
+                .refSave(null)
+                .amount(amount)
+                .balanceAfter(balanceAfter)
+                .description(description)
+                .occurredAt(occurredAt)
+                .build();
+    }
 
 }

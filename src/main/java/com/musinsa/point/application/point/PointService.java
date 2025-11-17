@@ -2,14 +2,17 @@ package com.musinsa.point.application.point;
 
 import com.musinsa.point.api.point.dto.request.PointSaveCancelRequest;
 import com.musinsa.point.api.point.dto.request.PointSaveRequest;
+import com.musinsa.point.api.point.dto.request.PointUseCancelRequest;
 import com.musinsa.point.api.point.dto.request.PointUseRequest;
 import com.musinsa.point.api.point.dto.response.PointSaveCancelResponse;
 import com.musinsa.point.api.point.dto.response.PointSaveResponse;
+import com.musinsa.point.api.point.dto.response.PointUseCancelResponse;
 import com.musinsa.point.api.point.dto.response.PointUseResponse;
 import com.musinsa.point.domain.member.entity.Member;
 import com.musinsa.point.domain.member.repository.MemberRepository;
 import com.musinsa.point.domain.point.entity.*;
 import com.musinsa.point.domain.point.model.ExpireType;
+import com.musinsa.point.domain.point.model.PointUseStatus;
 import com.musinsa.point.domain.point.repository.*;
 import com.musinsa.point.global.exception.BusinessException;
 import com.musinsa.point.global.exception.ErrorCode;
@@ -256,6 +259,133 @@ public class PointService {
                 .balanceAfter(nextBalance)
                 .orderNo(pointUse.getOrderNo())
                 .occurredAt(now)
+                .build();
+    }
+
+    @Transactional
+    public PointUseCancelResponse cancelUse(PointUseCancelRequest request) {
+
+        // 1. 회원 조회
+        Member member = memberRepository.findByMemberId(request.getMemberId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        // 2. 사용(use) 조회
+        PointUse use = pointUseRepository.findById(request.getUseNo())
+                .orElseThrow(() -> new BusinessException(ErrorCode.POINT_USE_NOT_FOUND));
+
+        if (!use.getMember().equals(member)) {
+            throw new BusinessException(ErrorCode.POINT_USE_NOT_FOUND, "해당 회원의 사용 건이 아닙니다.");
+        }
+
+        // 3. 총 취소 가능 금액 계산
+        long totalCancelable = pointUseDetailRepository.getCancelableAmountByUse(use.getUseNo());
+        if (totalCancelable <= 0) {
+            throw new BusinessException(ErrorCode.POINT_USE_CANCEL_INVALID, "이미 전액 취소된 사용 건입니다.");
+        }
+
+        long requestAmount = request.getCancelAmount();
+        if (requestAmount > totalCancelable) {
+            throw new BusinessException(ErrorCode.POINT_USE_CANCEL_INVALID,
+                    "취소 가능 금액(" + totalCancelable + ")을 초과합니다.");
+        }
+
+        long remainingCancel = requestAmount;
+
+        long currentBalance = pointSaveRepository.sumAvailableAmountByMember(member);
+        long nextBalance = currentBalance;
+        LocalDateTime now = LocalDateTime.now();
+
+        // 4. 사용 detail 오래된 순으로 조회
+        List<PointUseDetail> details = pointUseDetailRepository.findByPointUseOrderByDetailNoAsc(use);
+
+        List<PointHistory> historyList = new ArrayList<>();
+
+        for (PointUseDetail detail : details) {
+
+            long used = detail.getUsedAmount();
+            long alreadyCanceled = detail.getCanceledAmount();
+            long cancelable = used - alreadyCanceled;
+
+            if (cancelable <= 0) continue;
+
+            long cancelThisTime = Math.min(remainingCancel, cancelable);
+            remainingCancel -= cancelThisTime;
+
+            PointSave save = detail.getPointSave();
+            PointItem item = save.getPointItem();
+
+            // CASE 1 — save가 만료된 상태
+            if (save.getExpireAt().isBefore(now)) {
+
+                // expire policy 기반 만료일 재계산
+                LocalDateTime newExpire = calculateExpireAt(now, item);
+
+                // 이벤트 없이 적립되므로 eventCode = null
+                PointSave refundSave = PointSave.createSave(
+                        member,
+                        item,
+                        item.getPointType(),
+                        cancelThisTime,
+                        newExpire,
+                        true,
+                        null
+                );
+                pointSaveRepository.save(refundSave);
+
+                nextBalance += cancelThisTime;
+
+                PointHistory saveHistory = PointHistory.createSaveHistory(
+                        member,
+                        refundSave,
+                        cancelThisTime,
+                        nextBalance,
+                        now,
+                        "만료된 적립에 대한 사용 취소로 신규 적립 처리"
+                );
+                pointHistoryRepository.save(saveHistory);
+                historyList.add(saveHistory);
+
+            } else {
+                // CASE 2 — save가 아직 유효 → available_amount 증가
+                save.increaseAvailableAmount(cancelThisTime);
+
+                nextBalance += cancelThisTime;
+
+                PointHistory cancelHistory = PointHistory.createUseCancelHistory(
+                        member,
+                        use,
+                        cancelThisTime,
+                        nextBalance,
+                        now,
+                        "포인트 사용 취소"
+                );
+                pointHistoryRepository.save(cancelHistory);
+                historyList.add(cancelHistory);
+            }
+
+            // detail 취소 금액 증가
+            detail.addCanceledAmount(cancelThisTime);
+
+            if (remainingCancel == 0) break;
+        }
+
+        // 5. use 상태 갱신
+        if (requestAmount == totalCancelable) {
+            use.changeStatus(PointUseStatus.CANCEL);
+        } else {
+            use.changeStatus(PointUseStatus.PARTIAL_CANCEL);
+        }
+
+        // 대표 history (마지막 생성된 기록)
+        PointHistory lastHistory = historyList.get(historyList.size() - 1);
+
+        return PointUseCancelResponse.builder()
+                .useNo(use.getUseNo())
+                .pointKey(lastHistory.getHistoryNo())
+                .canceledAmount(requestAmount)
+                .balanceAfter(nextBalance)
+                .orderNo(use.getOrderNo())
+                .occurredAt(lastHistory.getOccurredAt())
                 .build();
     }
 
