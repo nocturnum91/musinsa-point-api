@@ -13,6 +13,8 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER_404", "회원 정보를 찾을 수 없습니다."),
 
     // 포인트
+    POINT_POLICY_NOT_FOUND(HttpStatus.NOT_FOUND, "POINT_POLICY_404", "포인트 정책 정보를 찾을 수 없습니다."),
+    POINT_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "POINT_ITEM_404", "포인트 아이템 정보를 찾을 수 없습니다."),
     POINT_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "POINT_EVENT_404", "포인트 이벤트 정보를 찾을 수 없습니다."),
     POINT_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, "POINT_POLICY_400", "포인트 정책을 위반한 요청입니다."),
     POINT_BALANCE_EXCEEDED(HttpStatus.BAD_REQUEST, "POINT_BALANCE_400", "보유 가능 포인트 한도를 초과합니다."),
