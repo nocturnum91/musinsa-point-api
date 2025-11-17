@@ -49,6 +49,20 @@ public class PointHistory {
     @Column(name = "occurred_at", nullable = false)
     private LocalDateTime occurredAt;
 
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onPersist() {
+        LocalDateTime now = LocalDateTime.now();
+        if (this.occurredAt == null) {
+            this.occurredAt = now;
+        }
+        if (this.createdAt == null) {
+            this.createdAt = now;
+        }
+    }
+
     @Builder(access = AccessLevel.PRIVATE)
     private PointHistory(Member member,
                          HistoryType historyType,
@@ -57,7 +71,8 @@ public class PointHistory {
                          Long amount,
                          Long balanceAfter,
                          String description,
-                         LocalDateTime occurredAt) {
+                         LocalDateTime occurredAt,
+                         LocalDateTime createdAt) {
         this.member = member;
         this.historyType = historyType;
         this.refSave = refSave;
@@ -66,6 +81,7 @@ public class PointHistory {
         this.balanceAfter = balanceAfter;
         this.description = description;
         this.occurredAt = occurredAt;
+        this.createdAt = createdAt;
     }
 
     /**
@@ -86,6 +102,7 @@ public class PointHistory {
                 .balanceAfter(balanceAfter)
                 .description(description)
                 .occurredAt(occurredAt)
+                .createdAt(null) // @PrePersist에서 자동 세팅
                 .build();
     }
 
