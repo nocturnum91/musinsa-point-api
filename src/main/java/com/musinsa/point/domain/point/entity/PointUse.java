@@ -22,9 +22,6 @@ public class PointUse extends BaseDateTimeEntity {
     @JoinColumn(name = "member_no", nullable = false)
     private Member member;
 
-    @Column(name = "use_key", nullable = false, unique = true, length = 32)
-    private String useKey;
-
     @Column(name = "order_no", nullable = false, length = 100)
     private String orderNo;
 

@@ -117,7 +117,6 @@ CREATE TABLE point_use
 (
     use_no      BIGINT PRIMARY KEY AUTO_INCREMENT,
     member_no   BIGINT       NOT NULL,
-    use_key     VARCHAR(32)  NOT NULL UNIQUE, -- 비즈니스 키
     order_no    VARCHAR(100) NOT NULL,        -- 주문 번호
     used_amount BIGINT       NOT NULL,        -- 이 사용 행위의 총 사용 포인트
     status      VARCHAR(20)  NOT NULL,        -- USED / PARTIAL_CANCEL / CANCEL
