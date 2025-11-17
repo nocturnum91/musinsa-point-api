@@ -190,38 +190,43 @@ VALUES (4,
 -- 2: test_user1 - 출석체크 포인트 적립
 ------------------------------------------------------------
 
+
+------------------------------------------------------------
+-- POINT_SAVE : 실제 적립 단위 예시
+-- save_no 1,2는 테스트 샘플
+------------------------------------------------------------
+
 -- 1. test_user1 - 회원 가입 축하 포인트 적립
-INSERT INTO point_save (save_no, member_no, item_no, event_no, point_type,
+INSERT INTO point_save (save_no, member_no, item_no, point_type,
                         amount, available_amount, expire_at, is_manual_yn,
-                        created_at, updated_at)
+                        event_code, created_at, updated_at)
 VALUES (1,
-        1, -- test_user1
-        1, -- item_no=1 (회원 가입 축하 아이템)
-        1, -- event_no=1 (회원 가입 축하 이벤트)
-        'EVENT',
-        3000, -- 적립 포인트
-        3000, -- 사용 가능 잔액
-        DATEADD('DAY', 365, TIMESTAMP '2025-11-01 00:00:00'), -- '2025-11-01 00:00:00' + 365일
-        'N',
-        '2025-11-01 00:00:00',
+        1,         -- test_user1
+        1,         -- item_no=1 (회원가입 축하)
+        'EVENT',   -- point_type
+        3000,      -- 적립 포인트
+        3000,      -- 사용 가능 잔액
+        DATEADD('DAY', 365, TIMESTAMP '2025-11-01 00:00:00'), -- 만료 = 기준일 + 365일
+        'N',       -- 수기 아님
+        'SIGNUP_BONUS', -- 어떤 이벤트로 적립됐는지 (메타)
+        TIMESTAMP '2025-11-01 00:00:00',
         CURRENT_TIMESTAMP);
 
 -- 2. test_user1 - 출석체크 포인트 적립
-INSERT INTO point_save (save_no, member_no, item_no, event_no, point_type,
+INSERT INTO point_save (save_no, member_no, item_no, point_type,
                         amount, available_amount, expire_at, is_manual_yn,
-                        created_at, updated_at)
+                        event_code, created_at, updated_at)
 VALUES (2,
-        1, -- test_user1
-        2, -- item_no=2 (출석체크 아이템)
-        2, -- event_no=2 (출석체크 이벤트)
-        'EVENT',
-        100, -- 적립 포인트
-        100, -- 사용 가능 잔액
-        DATEADD('DAY', 90, TIMESTAMP '2025-11-01 00:05:00'), -- '2025-11-01 00:00:00' + 90일
+        1,         -- test_user1
+        2,         -- item_no=2 (출석체크)
+        'EVENT',   -- point_type
+        100,       -- 적립 포인트
+        100,       -- 사용 가능 잔액
+        DATEADD('DAY', 90, TIMESTAMP '2025-11-01 00:05:00'), -- 만료 = 기준일 + 90일
         'N',
-        '2025-11-01 00:00:00',
+        'ATTEND_DAILY',
+        TIMESTAMP '2025-11-01 00:05:00',
         CURRENT_TIMESTAMP);
-
 
 ------------------------------------------------------------
 -- POINT_HISTORY : POINT_SAVE 예시 2건에 대한 이력
@@ -241,7 +246,7 @@ VALUES (
            NULL,                   -- ref_use_no
            3000,                   -- 적립 금액
            3000,                   -- 적립 후 총 잔액
-           '회원 가입 축하 포인트 적립',
+           '회원 가입 축하 포인트',
            TIMESTAMP '2025-11-01 00:00:00', -- 발생 시각
            CURRENT_TIMESTAMP
        );
@@ -258,7 +263,7 @@ VALUES (
            NULL,
            100,                    -- 적립 금액
            3100,                   -- 3,000 + 100
-           '출석체크 포인트 적립',
+           '출석체크 포인트',
            TIMESTAMP '2025-11-01 00:05:00', -- 예시로 5분 후
            CURRENT_TIMESTAMP
        );

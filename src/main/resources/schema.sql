@@ -37,6 +37,7 @@ CREATE TABLE member_point_limit
 ------------------------------------------------------------
 -- POINT_ITEM : 포인트 정책/아이템 (금액, 만료 규칙, 유형)
 --  point_type : PURCHASE / EVENT / COMPENSATION 등
+--  expire_type : RELATIVE_DAYS / FIXED_DATE
 ------------------------------------------------------------
 CREATE TABLE point_item
 (
@@ -78,21 +79,21 @@ CREATE TABLE point_event
 );
 
 ------------------------------------------------------------
--- POINT_SAVE : 실제 적립 단위 (기존 bucket 개념)
---  - save_no : 비즈니스 키(pointKey)로 그대로 활용 가능
---  - point_type : PURCHASE / EVENT / COMPENSATION 등
+-- POINT_SAVE : 실제 적립 단위 (버킷)
+--  - save_no : 한 번의 적립 행위(버킷) PK
+--  - event_code : 어떤 이벤트 코드로 적립됐는지 (선택, FK 아님)
 ------------------------------------------------------------
 CREATE TABLE point_save
 (
     save_no          BIGINT PRIMARY KEY AUTO_INCREMENT,
     member_no        BIGINT      NOT NULL,
     item_no          BIGINT      NOT NULL,
-    event_no         BIGINT NULL,          -- 이벤트 없이 적립(수기 등) 시 NULL 가능
-    point_type       VARCHAR(20) NOT NULL, -- 포인트 유형
+    point_type       VARCHAR(20) NOT NULL, -- PURCHASE / EVENT / COMPENSATION 등
     amount           BIGINT      NOT NULL, -- 최초 적립 포인트
     available_amount BIGINT      NOT NULL, -- 현재 사용 가능 잔액
     expire_at        TIMESTAMP   NOT NULL, -- 실제 만료 시각
     is_manual_yn     CHAR(1)     NOT NULL, -- 관리자 수기 지급 여부 (Y/N)
+    event_code       VARCHAR(50),          -- 적립을 발생시킨 이벤트 코드(옵션)
     created_at       TIMESTAMP   NOT NULL,
     updated_at       TIMESTAMP   NOT NULL,
 
@@ -100,15 +101,13 @@ CREATE TABLE point_save
         FOREIGN KEY (member_no) REFERENCES member (member_no),
 
     CONSTRAINT fk_save_item
-        FOREIGN KEY (item_no) REFERENCES point_item (item_no),
-
-    CONSTRAINT fk_save_event
-        FOREIGN KEY (event_no) REFERENCES point_event (event_no)
+        FOREIGN KEY (item_no) REFERENCES point_item (item_no)
 );
 
 -- 포인트 사용 우선순위: 수기(Y) → 만료 임박 → 적립 순
 CREATE INDEX idx_point_save_use_order
     ON point_save (member_no, is_manual_yn DESC, expire_at ASC, created_at ASC);
+
 
 ------------------------------------------------------------
 -- POINT_USE : 포인트 사용 단위 (C, D 같은 키)
@@ -117,9 +116,9 @@ CREATE TABLE point_use
 (
     use_no      BIGINT PRIMARY KEY AUTO_INCREMENT,
     member_no   BIGINT       NOT NULL,
-    order_no    VARCHAR(100) NOT NULL,        -- 주문 번호
-    used_amount BIGINT       NOT NULL,        -- 이 사용 행위의 총 사용 포인트
-    status      VARCHAR(20)  NOT NULL,        -- USED / PARTIAL_CANCEL / CANCEL
+    order_no    VARCHAR(100) NOT NULL, -- 주문 번호
+    used_amount BIGINT       NOT NULL, -- 이 사용 행위의 총 사용 포인트
+    status      VARCHAR(20)  NOT NULL, -- USED / PARTIAL_CANCEL / CANCEL
     created_at  TIMESTAMP    NOT NULL,
     updated_at  TIMESTAMP    NOT NULL,
 
@@ -159,7 +158,8 @@ CREATE INDEX idx_point_use_detail_save
 
 ------------------------------------------------------------
 -- POINT_HISTORY : 포인트 통합 이력 (적립/사용/취소/만료 조회용)
---  - amount : 증감 방향 포함 (양수/음수)
+--  - 모든 비즈니스 이벤트를 ledger처럼 쌓는 테이블
+--  - amount : 부호 포함 증감량 (+적립 / -사용/만료 등)
 ------------------------------------------------------------
 CREATE TABLE point_history
 (
